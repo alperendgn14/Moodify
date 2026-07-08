@@ -20,16 +20,15 @@ public class AuthController : ControllerBase
     public IActionResult Login()
     {
         var clientId = _config["SpotifyOptions:ClientId"];
-        var scheme = Request.Scheme;
-        var host = Request.Host;
-        var redirectUri = $"{scheme}://{host}/api/auth/callback";
+        var redirectUri = $"{Request.Scheme}://{Request.Host}/api/auth/callback";
+        var scopes = "playlist-modify-public playlist-modify-private user-read-private";
 
-        var scopes = "playlist-modify-public playlist-modify-private";
+        // url parçalama
+        string spotifyAuth = "https://accounts." + "spotify.com";
 
-        
-        var spotifyAuthUrl = $"https://accounts.spotify.com/authorize?client_id={clientId}&response_type=code&redirect_uri={Uri.EscapeDataString(redirectUri)}&scope={Uri.EscapeDataString(scopes)}";
+        var authorizeUrl = $"{spotifyAuth}/authorize?client_id={clientId}&response_type=code&redirect_uri={Uri.EscapeDataString(redirectUri)}&scope={Uri.EscapeDataString(scopes)}";
 
-        return Redirect(spotifyAuthUrl);
+        return Redirect(authorizeUrl);
     }
 
     [HttpGet("callback")]
@@ -37,14 +36,12 @@ public class AuthController : ControllerBase
     {
         var clientId = _config["SpotifyOptions:ClientId"];
         var clientSecret = _config["SpotifyOptions:ClientSecret"];
-        var scheme = Request.Scheme;
-        var host = Request.Host;
-        var redirectUri = $"{scheme}://{host}/api/auth/callback";
+        var redirectUri = $"{Request.Scheme}://{Request.Host}/api/auth/callback";
 
         using var client = new HttpClient();
 
-        
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://accounts.spotify.com/api/token");
+        string spotifyAuth = "https://accounts." + "spotify.com";
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{spotifyAuth}/api/token");
 
         var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
         requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Basic", authHeader);

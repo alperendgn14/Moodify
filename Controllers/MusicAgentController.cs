@@ -65,13 +65,12 @@ public class MusicAgentController : ControllerBase
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Replace("Bearer ", ""));
 
-        // 1-profil urlsi
-        var userResponse = await client.GetAsync("https://api.spotify.com/v1/me");
-        if (!userResponse.IsSuccessStatusCode)
-        {
-            var errorBody = await userResponse.Content.ReadAsStringAsync();
-            return BadRequest($"Kullanıcı profili alınamadı. Detay: {errorBody}");
-        }
+        // link parçalama
+        string spotifyApi = "https://api." + "spotify.com/v1";
+
+        // 1-profil bilgisi al
+        var userResponse = await client.GetAsync($"{spotifyApi}/me");
+        if (!userResponse.IsSuccessStatusCode) return BadRequest("Profil alınamadı.");
 
         var userJson = JsonDocument.Parse(await userResponse.Content.ReadAsStringAsync());
         var userId = userJson.RootElement.GetProperty("id").GetString();
@@ -81,30 +80,34 @@ public class MusicAgentController : ControllerBase
         {
             name = request.PlaylistName,
             description = "Moodify AI tarafından ruh halinize göre üretilmiştir.",
-            @public = true
+            @public = false // Onaysız uygulamalar için false olmak zorunda
         };
         var playlistContent = new StringContent(JsonSerializer.Serialize(playlistBody), Encoding.UTF8, "application/json");
 
-        var playlistResponse = await client.PostAsync($"https://api.spotify.com/v1/users/{userId}/playlists", playlistContent);
+        var playlistResponse = await client.PostAsync($"{spotifyApi}/users/{userId}/playlists", playlistContent);
         if (!playlistResponse.IsSuccessStatusCode)
         {
             var errorBody = await playlistResponse.Content.ReadAsStringAsync();
-            return BadRequest($"Liste oluşturulamadı. Spotify Diyor ki: {errorBody}");
+            return BadRequest($"Liste oluşturulamadı. Hata: {errorBody}");
         }
 
         var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
         var playlistId = playlistJson.RootElement.GetProperty("id").GetString();
         var playlistUrl = playlistJson.RootElement.GetProperty("external_urls").GetProperty("spotify").GetString();
 
-        // 3-şarkı ekleme
-        var tracksBody = new { uris = request.TrackUris };
+        // 3-şarkı ekle
+        var tracksBody = new
+        {
+            uris = request.TrackUris, // ["spotify:track:ID", ...] formatında
+            position = 0 
+        };
         var tracksContent = new StringContent(JsonSerializer.Serialize(tracksBody), Encoding.UTF8, "application/json");
 
-        var tracksResponse = await client.PostAsync($"https://api.spotify.com/v1/playlists/{playlistId}/tracks", tracksContent);
+        var tracksResponse = await client.PostAsync($"{spotifyApi}/playlists/{playlistId}/items", tracksContent);
         if (!tracksResponse.IsSuccessStatusCode)
         {
             var errorBody = await tracksResponse.Content.ReadAsStringAsync();
-            return BadRequest($"Şarkılar eklenemedi. Spotify Diyor ki: {errorBody}");
+            return BadRequest($"Şarkılar eklenemedi. Hata: {errorBody}");
         }
 
         return Ok(new { playlistUrl });
