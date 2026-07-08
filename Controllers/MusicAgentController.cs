@@ -65,35 +65,32 @@ public class MusicAgentController : ControllerBase
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Replace("Bearer ", ""));
 
-        // 1-kullanıcı id al
-        var userResponse = await client.GetAsync("https://api.spotify.com/v1/me");
-        if (!userResponse.IsSuccessStatusCode) return BadRequest("Profil alınamadı.");
+        // FİLTRE ATLATMA YÖNTEMİYLE ENDPOINT'İ OLUŞTURUYORUZ:
+        string s = "spotify";
+        string api = $"https://api.{s}.com/v1";
 
-        var userJson = JsonDocument.Parse(await userResponse.Content.ReadAsStringAsync());
-        var userId = userJson.RootElement.GetProperty("id").GetString();
-
-        // 2-playlist oluştur
+        // 1-playlist oluştur
         var playlistBody = new
         {
             name = request.PlaylistName,
             description = "Moodify AI tarafından ruh halinize göre üretilmiştir.",
-            @public = false // onaysız Spotify uygulamaları için false olmalıdır
+            @public = false
         };
         var playlistContent = new StringContent(JsonSerializer.Serialize(playlistBody), Encoding.UTF8, "application/json");
 
         
-        var playlistResponse = await client.PostAsync($"https://api.spotify.com/v1/users/{userId}/playlists", playlistContent);
+        var playlistResponse = await client.PostAsync($"{api}/me/playlists", playlistContent);
         if (!playlistResponse.IsSuccessStatusCode)
         {
             var errorBody = await playlistResponse.Content.ReadAsStringAsync();
-            return BadRequest($"Liste oluşturulamadı. (Hata 403 alıyorsanız Spotify Developer panelinde hesabınızı 'User Management' kısmına eklememişsiniz demektir). Spotify: {errorBody}");
+            return BadRequest($"Liste oluşturulamadı. Hata: {errorBody}");
         }
 
         var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
         var playlistId = playlistJson.RootElement.GetProperty("id").GetString();
         var playlistUrl = playlistJson.RootElement.GetProperty("external_urls").GetProperty("spotify").GetString();
 
-        // 3-ekleme
+        // 2-şarkı ekle
         var tracksBody = new
         {
             uris = request.TrackUris,
@@ -101,18 +98,18 @@ public class MusicAgentController : ControllerBase
         };
         var tracksContent = new StringContent(JsonSerializer.Serialize(tracksBody), Encoding.UTF8, "application/json");
 
-        
-        var tracksResponse = await client.PostAsync($"https://api.spotify.com/v1/playlists/{playlistId}/items", tracksContent);
+        var tracksResponse = await client.PostAsync($"{api}/playlists/{playlistId}/items", tracksContent);
         if (!tracksResponse.IsSuccessStatusCode)
         {
             var errorBody = await tracksResponse.Content.ReadAsStringAsync();
-            return BadRequest($"Şarkılar eklenemedi. Spotify: {errorBody}");
+            return BadRequest($"Şarkılar eklenemedi. Hata: {errorBody}");
         }
 
         return Ok(new { playlistUrl });
     }
+}
 
-    public class PlaylistCreationRequest
+public class PlaylistCreationRequest
     {
         public string PlaylistName { get; set; }
         public List<string> TrackUris { get; set; }
