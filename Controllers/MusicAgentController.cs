@@ -76,7 +76,7 @@ public class MusicAgentController : ControllerBase
 
 
         //2-kullanıcı adıyla playlist oluştur.
-        var playlistBody = new { name = request.PlaylistName, description = "Moodify AI tarafından ruh halinize göre üretilmiştir."};
+        var playlistBody = new { name = request.PlaylistName, description = "Moodify AI tarafından ruh halinize göre üretilmiştir.", @public = true};
         var playlistContent = new StringContent(JsonSerializer.Serialize(playlistBody), Encoding.UTF8, "application/json");
 
         var playlistResponse = await client.PostAsync($"https://api.spotify.com/v1/users/{userId}/playlists", playlistContent);
