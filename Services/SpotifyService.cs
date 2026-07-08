@@ -49,7 +49,8 @@ public class SpotifyService
                     OnizlemeSesi = track.PreviewUrl,
                     AlbumAdi = track.Album.Name,
                     YayinTarihi = track.Album.ReleaseDate,
-                    Populerlik = track.Popularity
+                    Populerlik = track.Popularity,
+                    Uri = track.Uri
                 });
             }
         }

@@ -1,4 +1,42 @@
-﻿// dil ve çeviri
+﻿let spotifyToken = null;
+let currentTrackUris = []; //şarkı kodları burda olcak
+
+//access token urlde var mı kontrol et
+const urlParams = new URLSearchParams(window.location.search);
+const tokenFromUrl = urlParams.get('access_token');
+
+if (tokenFromUrl) {
+    spotifyToken = tokenFromUrl;
+    localStorage.setItem('spotify_token', spotifyToken);
+    //url temizliği
+    window.history.replaceState({}, document.title, "/");
+} else {
+    spotifyToken = localStorage.getItem('spotify_token');
+}
+
+
+//giriş butonu durumu güncelle
+const loginBtn = document.getElementById('loginBtn');
+if (spotifyToken) {
+    loginBtn.innerText = "Spotify Bağlı ✓";
+    loginBtn.style.background = "rgba(255,255,255,0.1)";
+    loginBtn.style.color = "white";
+    loginBtn.disabled = true;
+}
+
+loginBtn.addEventListener('click', () => {
+    window.location.href = '/api/auth/login'; // backend üzerinden giriş sayfasına yönlendir
+})
+
+
+
+
+
+
+
+
+
+// dil ve çeviri
 const dict = {
     tr: {
         title: "🎵 Moodify <span class='highlight'>AI</span>",
@@ -186,6 +224,8 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         if (!response.ok) throw new Error('Sunucu hatası.');
         const data = await response.json();
 
+
+        currentTrackUris = [];
         data.sarkilar.forEach((song, index) => {
             const card = document.createElement('div');
             card.className = 'song-card';
@@ -202,6 +242,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 
             let audioHtml = song.onizlemeSesi ? `<audio controls src="${song.onizlemeSesi}" class="audio-player"></audio>` : '';
 
+            currentTrackUris.push(song.uri);
             card.innerHTML = `
                 <img src="${song.kapakFotografi}" alt="${song.sarkiAdi}" class="album-art" />
                 <div class="song-info">
@@ -217,6 +258,9 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
         });
 
         resultsSection.style.display = 'block';
+        if (spotifyToken && currentTrackUris.length > 0) {
+            document.getElementById('savePlaylistBtn').style.display = 'inline-block';
+        }
     } catch (err) {
         errorMessage.innerText = err.message;
         errorMessage.style.display = 'block';
@@ -229,3 +273,39 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
 // sayfa geldiğinde ayarlar uygulansın.
 applyLanguage();
 renderHistory();
+
+
+document.getElementById('savePlaylistBtn').addEventListener('click', async () => {
+    if (!spotifyToken || currentTrackUris.length === 0) return;
+
+    const saveBtn = document.getElementById('savePlaylistBtn');
+    const moodInput = document.getElementById('moodInput').value || "Moodify Listem";
+
+    saveBtn.disabled = true;
+    saveBtn.innerText = "Çalma Listesi Oluşturuluyor...";
+
+    try {
+        const response = await fetch('/api/MusicAgent/create-playlist', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${spotifyToken}`
+            },
+            body: JSON.stringify({
+                playlistName: `Moodify: ${moodInput.substring(0, 20)}...`,
+                trackUris: currentTrackUris
+            })
+        });
+
+        if (!response.ok) throw new Error('Liste kaydedilemedi.');
+
+        const data = await response.json();
+        alert('Çalma listeniz başarıyla Spotify hesabınıza eklendi! Profilinizden kontrol edebilirsiniz. 🎉');
+        window.open(data.playlistUrl, '_blank'); // Listeyi yeni sekmede aç
+    } catch (err) {
+        alert('Hata: ' + err.message);
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "Bu Listeyi Spotify Hesabıma Kaydet 🚀";
+    }
+});
