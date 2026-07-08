@@ -65,7 +65,7 @@ public class MusicAgentController : ControllerBase
         using var client = new HttpClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Replace("Bearer ", ""));
 
-        // FİLTRE ATLATMA YÖNTEMİYLE ENDPOINT'İ OLUŞTURUYORUZ:
+       
         string s = "spotify";
         string api = $"https://api.{s}.com/v1";
 
@@ -116,4 +116,3 @@ public class PlaylistCreationRequest
     }
 
 
-}
