@@ -81,7 +81,11 @@ public class MusicAgentController : ControllerBase
 
         var playlistResponse = await client.PostAsync($"https://api.spotify.com/v1/users/{userId}/playlists", playlistContent);
         if (!playlistResponse.IsSuccessStatusCode)
-            return BadRequest("Çalma listesi oluşturulamadı.");
+        {
+            var errorBody = await playlistResponse.Content.ReadAsStringAsync();
+            return BadRequest($"Liste oluşturulamadı. Spotify Diyor ki: {errorBody}");
+        }
+            
 
         var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
         var playlistId = playlistJson.RootElement.GetProperty("id").GetString();
@@ -93,7 +97,10 @@ public class MusicAgentController : ControllerBase
 
         var tracksResponse = await client.PostAsync($"https://api.spotify.com/v1/playlists/{playlistId}/tracks", tracksContent);
         if (!tracksResponse.IsSuccessStatusCode)
-            return BadRequest("Şarkılar listeye eklenemedi.");
+        {
+            var errorBody = await tracksResponse.Content.ReadAsStringAsync();
+            return BadRequest($"Şarkılar eklenemedi. Spotify Diyor ki: {errorBody}");
+        }
 
         return Ok(new { playlistUrl });
     }
