@@ -46,7 +46,10 @@ public class SpotifyService
                     Sanatci = track.Artists.FirstOrDefault()?.Name,
                     KapakFotografi = track.Album.Images.FirstOrDefault()?.Url,
                     SpotifyLinki = track.ExternalUrls.ContainsKey("spotify") ? track.ExternalUrls["spotify"] : null,
-                    OnizlemeSesi = track.PreviewUrl
+                    OnizlemeSesi = track.PreviewUrl,
+                    AlbumAdi = track.Album.Name,
+                    YayinTarihi = track.Album.ReleaseDate,
+                    Populerlik = track.Popularity
                 });
             }
         }

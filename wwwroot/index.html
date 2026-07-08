@@ -3,39 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify AI Asistanı</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Moodify AI</title>
+    <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
-    <div class="theme-switch-wrapper">
-        <span id="theme-text">Karanlık</span>
-        <label class="theme-switch" for="checkbox">
-            <input type="checkbox" id="checkbox" />
-            <div class="slider round"></div>
-        </label>
+    <div class="top-controls">
+        <button id="langToggle" class="control-btn">EN / TR</button>
+        <div class="theme-switch-wrapper">
+            <span id="theme-text" data-i18n="themeDark">Karanlık</span>
+            <label class="theme-switch" for="checkbox">
+                <input type="checkbox" id="checkbox" />
+                <div class="slider round"></div>
+            </label>
+        </div>
     </div>
 
     <div class="app-container">
         <header class="header">
-            <h1>🎵 Spotify <span class="highlight">AI</span> Asistanı</h1>
-            <p>Nasıl hissediyorsun? Anlat, sana tam o ruh haline uygun şarkılar bulayım.</p>
+            <h1 data-i18n="title">🎵 Moodify <span class="highlight">AI</span></h1>
+            <p data-i18n="desc">Nasıl hissediyorsun? Anlat, sana tam o ruh haline uygun şarkılar bulayım.</p>
         </header>
 
         <main class="main-content">
             <div class="input-section">
-                <textarea id="moodInput" placeholder="Örn: Çok enerjik hissediyorum, spora gideceğim ve gaza gelmem lazım!" rows="4"></textarea>
+                <textarea id="moodInput" data-i18n-placeholder="placeholder" rows="4"></textarea>
                 <button id="searchBtn">
-                    <span class="btn-text">Şarkı Bul</span>
+                    <span class="btn-text" data-i18n="btnSearch">Şarkı Bul</span>
                 </button>
+            </div>
+
+            <div id="historySection" class="history-section" style="display: none;">
+                <h3 data-i18n="historyTitle">Geçmiş Aramalar</h3>
+                <div id="historyTags" class="history-tags"></div>
             </div>
 
             <div id="errorMessage" class="error-message" style="display: none;"></div>
 
             <div id="resultsSection" class="results-section" style="display: none;">
-                <h2>Senin İçin Seçilenler</h2>
+                <h2 data-i18n="resultsTitle">Senin İçin Seçilenler</h2>
                 <div id="songsGrid" class="songs-grid"></div>
             </div>
         </main>
+    </div>
+
+    <div id="songModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modalBody"></div>
+        </div>
     </div>
 
     <script src="app.js"></script>

@@ -9,10 +9,10 @@ namespace MusicAiAgent.Controllers;
 [Route("api/[controller]")]
 public class MusicAgentController : ControllerBase
 {
-    private readonly GroqAiService _aiService;
+    private readonly OpenAiService _aiService;
     private readonly SpotifyService _spotifyService;
 
-    public MusicAgentController(GroqAiService aiService, SpotifyService spotifyService)
+    public MusicAgentController(OpenAiService aiService, SpotifyService spotifyService)
     {
         _aiService = aiService;
         _spotifyService = spotifyService;

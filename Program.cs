@@ -10,7 +10,7 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddHttpClient<GroqAiService>();
+builder.Services.AddHttpClient<OpenAiService>();
 builder.Services.AddScoped<SpotifyService>();
 
 builder.Services.AddCors(options =>
@@ -42,6 +42,8 @@ app.UseCors("AllowFrontend");
 
 app.UseAuthorization();
 
+
+app.MapGet("/ping", () => Results.Ok("pong")); // burası uptimemonitor için kullanılacak, uptimemonitor ping atacak ve 200 dönerse uygulama çalışıyor.
 app.MapControllers();
 
 app.Run();
