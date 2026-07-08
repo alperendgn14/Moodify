@@ -170,7 +170,7 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
     songsGrid.innerHTML = '';
 
     try {
-        const response = await fetch('https://localhost:7133/api/MusicAgent/recommend', {
+        const response = await fetch('/api/MusicAgent/recommend', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userMood: moodInput, language: currentLang.toUpperCase() })
