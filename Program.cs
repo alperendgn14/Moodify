@@ -34,6 +34,9 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+
+app.UseDefaultFiles(); // index.html dosyasını ana sayfa yap
+app.UseStaticFiles();  // wwwroot klasörünü dış dünyaya aç
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 

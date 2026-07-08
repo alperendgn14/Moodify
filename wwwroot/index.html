@@ -1,0 +1,43 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify AI Asistanı</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="theme-switch-wrapper">
+        <span id="theme-text">Karanlık</span>
+        <label class="theme-switch" for="checkbox">
+            <input type="checkbox" id="checkbox" />
+            <div class="slider round"></div>
+        </label>
+    </div>
+
+    <div class="app-container">
+        <header class="header">
+            <h1>🎵 Spotify <span class="highlight">AI</span> Asistanı</h1>
+            <p>Nasıl hissediyorsun? Anlat, sana tam o ruh haline uygun şarkılar bulayım.</p>
+        </header>
+
+        <main class="main-content">
+            <div class="input-section">
+                <textarea id="moodInput" placeholder="Örn: Çok enerjik hissediyorum, spora gideceğim ve gaza gelmem lazım!" rows="4"></textarea>
+                <button id="searchBtn">
+                    <span class="btn-text">Şarkı Bul</span>
+                </button>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <div id="resultsSection" class="results-section" style="display: none;">
+                <h2>Senin İçin Seçilenler</h2>
+                <div id="songsGrid" class="songs-grid"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
