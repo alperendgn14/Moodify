@@ -297,9 +297,15 @@ document.getElementById('savePlaylistBtn').addEventListener('click', async () =>
             })
         });
 
-        if (!response.ok) throw new Error('Liste kaydedilemedi.');
 
+        if (!response.ok) {
+            // daha detaylı hata mesajı
+            const errorText = await response.text();
+            throw new Error(errorText);
+        }
         const data = await response.json();
+
+
         alert('Çalma listeniz başarıyla Spotify hesabınıza eklendi! Profilinizden kontrol edebilirsiniz. 🎉');
         window.open(data.playlistUrl, '_blank'); // Listeyi yeni sekmede aç
     } catch (err) {
