@@ -60,23 +60,29 @@ public class MusicAgentController : ControllerBase
     [HttpPost("create-playlist")]
     public async Task<IActionResult> CreatePlaylist([FromHeader(Name = "Authorization")] string token, [FromBody] PlaylistCreationRequest request)
     {
-        if (string.IsNullOrEmpty(token))
-            return Unauthorized();
+        if (string.IsNullOrEmpty(token)) return Unauthorized();
 
         using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Replace("Bearer", ""));
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Replace("Bearer ", ""));
 
-        //1-kullanıcının spotify id öğren
+        // 1-profil urlsi
         var userResponse = await client.GetAsync("https://api.spotify.com/v1/me");
         if (!userResponse.IsSuccessStatusCode)
-            return BadRequest("Kullanıcı profili alınamadı.");
+        {
+            var errorBody = await userResponse.Content.ReadAsStringAsync();
+            return BadRequest($"Kullanıcı profili alınamadı. Detay: {errorBody}");
+        }
 
         var userJson = JsonDocument.Parse(await userResponse.Content.ReadAsStringAsync());
         var userId = userJson.RootElement.GetProperty("id").GetString();
 
-
-        //2-kullanıcı adıyla playlist oluştur.
-        var playlistBody = new { name = request.PlaylistName, description = "Moodify AI tarafından ruh halinize göre üretilmiştir.", @public = true};
+        // 2-playlist oluştur
+        var playlistBody = new
+        {
+            name = request.PlaylistName,
+            description = "Moodify AI tarafından ruh halinize göre üretilmiştir.",
+            @public = true
+        };
         var playlistContent = new StringContent(JsonSerializer.Serialize(playlistBody), Encoding.UTF8, "application/json");
 
         var playlistResponse = await client.PostAsync($"https://api.spotify.com/v1/users/{userId}/playlists", playlistContent);
@@ -85,13 +91,12 @@ public class MusicAgentController : ControllerBase
             var errorBody = await playlistResponse.Content.ReadAsStringAsync();
             return BadRequest($"Liste oluşturulamadı. Spotify Diyor ki: {errorBody}");
         }
-            
 
         var playlistJson = JsonDocument.Parse(await playlistResponse.Content.ReadAsStringAsync());
         var playlistId = playlistJson.RootElement.GetProperty("id").GetString();
         var playlistUrl = playlistJson.RootElement.GetProperty("external_urls").GetProperty("spotify").GetString();
 
-        //3-şarkılar playliste eklenir
+        // 3-şarkı ekleme
         var tracksBody = new { uris = request.TrackUris };
         var tracksContent = new StringContent(JsonSerializer.Serialize(tracksBody), Encoding.UTF8, "application/json");
 

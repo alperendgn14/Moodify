@@ -22,12 +22,11 @@ public class AuthController : ControllerBase
         var clientId = _config["SpotifyOptions:ClientId"];
         var scheme = Request.Scheme;
         var host = Request.Host;
-        //localhost veya render adresi
         var redirectUri = $"{scheme}://{host}/api/auth/callback";
 
-        //çalma listesi oluşturma , ekleme
         var scopes = "playlist-modify-public playlist-modify-private";
 
+        
         var spotifyAuthUrl = $"https://accounts.spotify.com/authorize?client_id={clientId}&response_type=code&redirect_uri={Uri.EscapeDataString(redirectUri)}&scope={Uri.EscapeDataString(scopes)}";
 
         return Redirect(spotifyAuthUrl);
@@ -43,6 +42,8 @@ public class AuthController : ControllerBase
         var redirectUri = $"{scheme}://{host}/api/auth/callback";
 
         using var client = new HttpClient();
+
+        
         var requestMessage = new HttpRequestMessage(HttpMethod.Post, "https://accounts.spotify.com/api/token");
 
         var authHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{clientId}:{clientSecret}"));
@@ -54,19 +55,15 @@ public class AuthController : ControllerBase
             new("code", code),
             new("redirect_uri", redirectUri)
         };
-
         requestMessage.Content = new FormUrlEncodedContent(keyValues);
 
         var response = await client.SendAsync(requestMessage);
-        if (!response.IsSuccessStatusCode)
-            return BadRequest("Spotify'dan token alınamadı.");
+        if (!response.IsSuccessStatusCode) return BadRequest("Spotify'dan token alınamadı.");
 
         var responseString = await response.Content.ReadAsStringAsync();
         using var jsonDoc = JsonDocument.Parse(responseString);
         var accessToken = jsonDoc.RootElement.GetProperty("access_token").GetString();
 
-        //giriş başarılıysa tokeni frontende aktarma
         return Redirect($"/index.html?access_token={accessToken}");
-
     }
 }
