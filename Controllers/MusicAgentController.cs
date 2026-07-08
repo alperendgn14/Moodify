@@ -2,11 +2,13 @@
 using MusicAiAgent.Models;
 using MusicAiAgent.Services;
 using SpotifyAI.Models;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MusicAiAgent.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("MoodifyKalkani")]
 public class MusicAgentController : ControllerBase
 {
     private readonly OpenAiService _aiService;

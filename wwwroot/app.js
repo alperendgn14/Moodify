@@ -176,6 +176,13 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
             body: JSON.stringify({ userMood: moodInput, language: currentLang.toUpperCase() })
         });
 
+        if (response.status === 429) {
+            throw new Error(currentLang === 'tr'
+                ? 'Çok hızlı arama yapıyorsunuz! Lütfen 1 dakika bekleyip tekrar deneyin.'
+                : 'Too many requests! Please wait 1 minute and try again.');
+        }
+
+
         if (!response.ok) throw new Error('Sunucu hatası.');
         const data = await response.json();
 

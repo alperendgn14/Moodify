@@ -1,6 +1,33 @@
 using MusicAiAgent.Services;
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+// 1-render proxy ayarı, kullanıcının gerçek ip adresini yakalamak için
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+// 2-rate limit, ip başına dakikada maksimum 7-8 istek
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("MoodifyKalkani", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "BilinmeyenIP",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 7, // 1 dakikadaki maksimum istek hakkı
+                Window = TimeSpan.FromMinutes(1), // süre 
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0 // 8. istek anında reddedilir
+            }));
+
+    // sınır aşıldığında 429 hatası döndür
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 // Add services to the container.
 
@@ -21,6 +48,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(); // proxy'den gerçek ip'yi okumayı başlat
+app.UseRateLimiter();      // rate limiting aktif
 
 
 // Configure the HTTP request pipeline.
