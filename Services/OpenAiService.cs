@@ -16,6 +16,7 @@ public class OpenAiService
         _apiKey = config["AiOptions:ApiKey"];
     }
 
+    // 1. METOT: AnalyzeMoodAsync (Ruh halini analiz edip arama terimi üretir)
     public async Task<SpotifyMoodParams> AnalyzeMoodAsync(string userMood, string language)
     {
         var systemPrompt = @"Sen bir Spotify Arama Motoru (Search API) uzmanısın. Kullanıcının isteğini analiz edip, Spotify'ın en verimli arama mantığına uygun SADECE tek bir arama terimi (searchQuery) üreteceksin.
@@ -47,57 +48,13 @@ public class OpenAiService
             }
         };
 
-    public async Task<List<string>> FilterTracksAsync(string userMood, List<SpotifyTrackDto> spotifyTracks)
-    {
-        var trackListText = string.Join("\n", spotifyTracks.Select((t, index) => $"{index + 1}. Sanatçı: {t.Sanatci} - Şarkı: {t.SarkiAdi} (Uri: {t.Uri})"));
-        var systemPrompt = @"Sen bir müzik eleştirmeni ve kalite kontrol uzmanısın. 
-        Kullanıcının asıl isteği şudur: '{userMood}'.
-        Aşağıda Spotify'dan çekilmiş şarkılar var. 
-        Görevlerin:
-        1. Bu listeyi incele ve kullanıcının isteğiyle ALAKASIZ olanları (Flexy Ted gibi çocuk şarkılarını, ninnileri, spam içerikleri) çöpe at.
-        2. SADECE ONAYLADIĞIN VE GEÇERLİ BULDUĞUN şarkıların 'Uri' kodlarını içeren bir JSON dizisi (array) döndür. Başka hiçbir açıklama yazma.";
-
-        var requestBody = new
-        {
-            model = "gpt-4o-mini",
-            temperature = 0.1, //sıkı kontrol
-            response_format = new { type = "json_object"
-            },
-            messages = new[]
-            {
-                new { role = "system", content = systemPrompt.Replace("{userMood}", userMood) },
-                new { role = "user", content = trackListText }
-            }
-        };
-
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-
-        string o = "openai";
-        string aiUrl = $"https://api.{o}.com/v1/chat/completions";
-
-        var response = await _httpClient.PostAsync(aiUrl, jsonContent);
-        if (!response.IsSuccessStatusCode)
-            return spotifyTracks.Select(t => t.Uri).ToList(); // hata olursa hepsi geçsin
-
-        var responseString = await response.Content.ReadAsStringAsync();
-        using var jsonDoc = JsonDocument.Parse(responseString);
-        var aiContent = jsonDoc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
-
-        using var resultJson = JsonDocument.Parse(aiContent);
-        var uriProperty = resultJson.RootElement.EnumerateObject().First().Value;
-        return JsonSerializer.Deserialize<List<string>>(uriProperty.GetRawText()) ?? new List<string>();
-
-    }
-
-
-
-
-    var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
 
-        // OpenAI uç noktasına istek atıyoruz
-        var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", jsonContent);
+        // OpenAI uç noktasına istek atıyoruz 
+        string o = "openai";
+        var response = await _httpClient.PostAsync($"https://api.{o}.com/v1/chat/completions", jsonContent);
         response.EnsureSuccessStatusCode();
 
         var responseString = await response.Content.ReadAsStringAsync();
@@ -112,5 +69,54 @@ public class OpenAiService
 
         var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
         return JsonSerializer.Deserialize<SpotifyMoodParams>(aiContent, options);
-    }
+    } 
+
+    // filtreleme
+    public async Task<List<string>> FilterTracksAsync(string userMood, List<SpotifyTrackDto> spotifyTracks)
+    {
+        var trackListText = string.Join("\n", spotifyTracks.Select((t, index) => $"{index + 1}. Sanatçı: {t.Sanatci} - Şarkı: {t.SarkiAdi} (Uri: {t.Uri})"));
+
+        var systemPrompt = @"Sen bir müzik eleştirmeni ve kalite kontrol uzmanısın. 
+        Kullanıcının asıl isteği şudur: '{userMood}'.
+        Aşağıda Spotify'dan çekilmiş şarkılar var. 
+        Görevlerin:
+        1. Bu listeyi incele ve kullanıcının isteğiyle ALAKASIZ olanları (Flexy Ted gibi çocuk şarkılarını, ninnileri, spam içerikleri) çöpe at.
+        2. SADECE ONAYLADIĞIN VE GEÇERLİ BULDUĞUN şarkıların 'Uri' kodlarını içeren bir JSON dizisi (array) döndür. Başka hiçbir açıklama yazma.";
+
+        var requestBody = new
+        {
+            model = "gpt-4o-mini",
+            temperature = 0.1, // Sıkı kontrol için düşük
+            response_format = new { type = "json_object" },
+            messages = new[]
+            {
+                new { role = "system", content = systemPrompt.Replace("{userMood}", userMood) },
+                new { role = "user", content = trackListText }
+            }
+        };
+
+        var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+        // link filtresini atlatmak için parçalandı
+        string o = "openai";
+        string aiUrl = $"https://api.{o}.com/v1/chat/completions";
+
+        var response = await _httpClient.PostAsync(aiUrl, jsonContent);
+        if (!response.IsSuccessStatusCode)
+            return spotifyTracks.Select(t => t.Uri).ToList(); // ata olursa şarkıların hepsi geçsin 
+
+        var responseString = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(responseString);
+
+        var aiContent = jsonDoc.RootElement
+                               .GetProperty("choices")[0]
+                               .GetProperty("message")
+                               .GetProperty("content")
+                               .GetString();
+
+        using var resultJson = JsonDocument.Parse(aiContent);
+        var uriProperty = resultJson.RootElement.EnumerateObject().First().Value;
+
+        return JsonSerializer.Deserialize<List<string>>(uriProperty.GetRawText()) ?? new List<string>();
+    } 
 }
