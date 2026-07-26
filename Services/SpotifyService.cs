@@ -14,37 +14,34 @@ public class SpotifyService
         _clientSecret = config["SpotifyOptions:ClientSecret"];
     }
 
-    public async Task<List<object>> GetRecommendationsAsync(SpotifyMoodParams aiParams)
+    // liste dinamikleştirildi
+    public async Task<List<SpotifyTrackDto>> GetRecommendationsAsync(string searchQuery, int limit, int offset)
     {
-        // 1. yetkilendirme
         var config = SpotifyClientConfig.CreateDefault();
         var request = new ClientCredentialsRequest(_clientId, _clientSecret);
         var authResponse = await new OAuthClient(config).RequestToken(request);
         var spotify = new SpotifyClient(config.WithToken(authResponse.AccessToken));
 
-        Random rnd = new Random();
-        int rastgeleOfset = rnd.Next(0, 5) * 10;
-
-        // 2. yapay zekadan gelen arama terimiyle arama yapıyorum
-        var searchRequest = new SearchRequest(SearchRequest.Types.Track, aiParams.SearchQuery);
-        searchRequest.Limit = 10;
-        searchRequest.Market = "TR";
-        searchRequest.Offset = rastgeleOfset;
+        var searchRequest = new SearchRequest(SearchRequest.Types.Track, searchQuery)
+        {
+            Limit = limit,
+            Market = "TR",
+            Offset = offset
+        };
 
         var searchResponse = await spotify.Search.Item(searchRequest);
-        var trackList = new List<object>();
+        var trackList = new List<SpotifyTrackDto>();
 
         if (searchResponse.Tracks.Items != null)
         {
-            // 3. aynı isimdeki şarkıları eliyorum ve en tepedeki 10 tanesini alıyorum.
             var uniqueTracks = searchResponse.Tracks.Items
                 .DistinctBy(t => t.Name)
-                .Take(10)
+                .Take(limit) 
                 .ToList();
 
             foreach (var track in uniqueTracks)
             {
-                trackList.Add(new
+                trackList.Add(new SpotifyTrackDto
                 {
                     SarkiAdi = track.Name,
                     Sanatci = track.Artists.FirstOrDefault()?.Name,

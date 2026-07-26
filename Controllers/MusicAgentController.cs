@@ -24,36 +24,50 @@ public class MusicAgentController : ControllerBase
     }
 
     [HttpPost("recommend")]
-    public async Task<IActionResult> GetMusicRecommendations([FromBody] MoodRequestDto request)
+    public async Task<IActionResult> GetMusicRecommendation([FromBody] UserMoodRequest request)
     {
-        if (string.IsNullOrEmpty(request.UserMood))
-            return BadRequest("Ruh hali boş bırakılamaz.");
-
         try
         {
-            // 1. ruh halini llamaya gönder
-            var spotifyParams = await _aiService.AnalyzeMoodAsync(request.UserMood, request.Language);
+            // arama terimini al
+            var aiParams = await _openAiService.AnalyzeMoodAsync(request.UserMood, request.Language);
 
-            // 2. çıkan değerleri spotify'a yolla ve şarkıları getir.
-            var recommendedSongs = await _spotifyService.GetRecommendationsAsync(spotifyParams);
+            int targetCount = 10; // bize tam olarak 10 şarkı lazım
+            int currentOffset = new Random().Next(0, 3) * 10; 
 
-            // 3. sonucu frontende yolla.
+            var finalTracks = new List<SpotifyTrackDto>();
+            int maxRetries = 4; 
+            int retryCount = 0;
+           
+            while (finalTracks.Count < targetCount && retryCount < maxRetries)
+            {
+                
+                int needed = targetCount - finalTracks.Count;
+
+             
+                var fetchedTracks = await _spotifyService.GetRecommendationsAsync(aiParams.SearchQuery, needed, currentOffset);
+
+                if (fetchedTracks.Count == 0) break; 
+
+                // yapay zekaya uygun mu diye şarkılar gönderiliyor
+                var validUris = await _openAiService.FilterTracksAsync(request.UserMood, fetchedTracks);
+
+                // geçerli şarkıları listeye ekle   
+                var validTracks = fetchedTracks.Where(t => validUris.Contains(t.Uri)).ToList();
+                finalTracks.AddRange(validTracks);
+
+                currentOffset += needed;
+                retryCount++;
+            }
+
             return Ok(new
             {
-                Mesaj = "İşte ruh haline tam uyan şarkılar!",
-                YapayZekaAnalizi = spotifyParams,
-                Sarkilar = recommendedSongs
+                AramaTerimi = aiParams.SearchQuery,
+                Sarkilar = finalTracks
             });
-        }
-        catch (SpotifyAPI.Web.APIException ex)
-        {
-            // Spotify'ın gizli JSON hatasını zorla metne çevirip okuyoruz
-            var errorJson = System.Text.Json.JsonSerializer.Serialize(ex.Response?.Body);
-            return StatusCode(500, $"Spotify'ın Gizli Hatası:\nKod: {ex.Response?.StatusCode}\nDetay: {errorJson}");
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"ÇÖKME DETAYI:\nMesaj: {ex.Message}\nİz: {ex.StackTrace}");
+            return StatusCode(500, $"Bir hata oluştu: {ex.Message}");
         }
     }
 

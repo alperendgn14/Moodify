@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Text.Json;
 using MusicAiAgent.Models;
 
@@ -46,7 +47,52 @@ public class OpenAiService
             }
         };
 
+    public async Task<List<string>> FilterTracksAsync(string userMood, List<SpotifyTrackDto> spotifyTracks)
+    {
+        var trackListText = string.Join("\n", spotifyTracks.Select((t, index) => $"{index + 1}. Sanatçı: {t.Sanatci} - Şarkı: {t.SarkiAdi} (Uri: {t.Uri})"));
+        var systemPrompt = @"Sen bir müzik eleştirmeni ve kalite kontrol uzmanısın. 
+        Kullanıcının asıl isteği şudur: '{userMood}'.
+        Aşağıda Spotify'dan çekilmiş şarkılar var. 
+        Görevlerin:
+        1. Bu listeyi incele ve kullanıcının isteğiyle ALAKASIZ olanları (Flexy Ted gibi çocuk şarkılarını, ninnileri, spam içerikleri) çöpe at.
+        2. SADECE ONAYLADIĞIN VE GEÇERLİ BULDUĞUN şarkıların 'Uri' kodlarını içeren bir JSON dizisi (array) döndür. Başka hiçbir açıklama yazma.";
+
+        var requestBody = new
+        {
+            model = "gpt-4o-mini",
+            temperature = 0.1, //sıkı kontrol
+            response_format = new { type = "json_object"
+            },
+            messages = new[]
+            {
+                new { role = "system", content = systemPrompt.Replace("{userMood}", userMood) },
+                new { role = "user", content = trackListText }
+            }
+        };
+
         var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+        string o = "openai";
+        string aiUrl = $"https://api.{o}.com/v1/chat/completions";
+
+        var response = await _httpClient.PostAsync(aiUrl, jsonContent);
+        if (!response.IsSuccessStatusCode)
+            return spotifyTracks.Select(t => t.Uri).ToList(); // hata olursa hepsi geçsin
+
+        var responseString = await response.Content.ReadAsStringAsync();
+        using var jsonDoc = JsonDocument.Parse(responseString);
+        var aiContent = jsonDoc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+
+        using var resultJson = JsonDocument.Parse(aiContent);
+        var uriProperty = resultJson.RootElement.EnumerateObject().First().Value;
+        return JsonSerializer.Deserialize<List<string>>(uriProperty.GetRawText()) ?? new List<string>();
+
+    }
+
+
+
+
+    var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_apiKey}");
 
