@@ -8,6 +8,6 @@ public class SpotifyTrackDto {
 	public string OnizlemeSesi { get; set; }
 	public string AlbumAdi { get; set; }
 	public string YayinTarihi { get; set; }
-	public string Populerlik { get; set; }
+	public int Populerlik { get; set; }
 	public string Uri { get; set; }
 }

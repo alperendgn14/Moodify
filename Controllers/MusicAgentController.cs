@@ -6,6 +6,7 @@ using SpotifyAI.Models;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using MusicAiAgent.Models;
 
 namespace MusicAiAgent.Controllers;
 
@@ -15,11 +16,12 @@ namespace MusicAiAgent.Controllers;
 public class MusicAgentController : ControllerBase
 {
     private readonly OpenAiService _aiService;
+    private readonly OpenAiService _openAiService;
     private readonly SpotifyService _spotifyService;
 
-    public MusicAgentController(OpenAiService aiService, SpotifyService spotifyService)
+    public MusicAgentController(OpenAiService openAiService, SpotifyService spotifyService)
     {
-        _aiService = aiService;
+        _openAiService = openAiService;
         _spotifyService = spotifyService;
     }
 
