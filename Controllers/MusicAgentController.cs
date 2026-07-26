@@ -59,6 +59,11 @@ public class MusicAgentController : ControllerBase
 
                 currentOffset += needed;
                 retryCount++;
+
+                if (finalTracks.Count < targetCount)
+                {
+                    await Task.Delay(1500); // ratelimite takılmamak için 1.5 sn mola
+                }
             }
 
             return Ok(new

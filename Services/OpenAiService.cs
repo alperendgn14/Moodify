@@ -15,8 +15,7 @@ public class OpenAiService
         _httpClient = httpClient;
         _apiKey = config["AiOptions:ApiKey"];
     }
-
-    // 1. METOT: AnalyzeMoodAsync (Ruh halini analiz edip arama terimi üretir)
+    
     public async Task<SpotifyMoodParams> AnalyzeMoodAsync(string userMood, string language)
     {
         var systemPrompt = @"Sen bir Spotify Arama Motoru (Search API) uzmanısın. Kullanıcının isteğini analiz edip, Spotify'ın en verimli arama mantığına uygun SADECE tek bir arama terimi (searchQuery) üreteceksin.
@@ -102,21 +101,26 @@ public class OpenAiService
         string aiUrl = $"https://api.{o}.com/v1/chat/completions";
 
         var response = await _httpClient.PostAsync(aiUrl, jsonContent);
+
+
         if (!response.IsSuccessStatusCode)
-            return spotifyTracks.Select(t => t.Uri).ToList(); // ata olursa şarkıların hepsi geçsin 
+            return spotifyTracks.Select(t => t.Uri).ToList(); // hata olursa şarkıların hepsi geçsin 
 
         var responseString = await response.Content.ReadAsStringAsync();
-        using var jsonDoc = JsonDocument.Parse(responseString);
 
-        var aiContent = jsonDoc.RootElement
-                               .GetProperty("choices")[0]
-                               .GetProperty("message")
-                               .GetProperty("content")
-                               .GetString();
+        try
+        {
+            using var jsonDoc = JsonDocument.Parse(responseString);
+            var aiContent = jsonDoc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
 
-        using var resultJson = JsonDocument.Parse(aiContent);
-        var uriProperty = resultJson.RootElement.EnumerateObject().First().Value;
+            using var resultJson = JsonDocument.Parse(aiContent);
+            var uriProperty = resultJson.RootElement.EnumerateObject().First().Value;
+            return JsonSerializer.Deserialize<List<string>>(uriProperty.GetRawText()) ?? new List<string>();
+        }
+        catch
+        {
+            return new List<string>(); // ai json formatından çıkarsa çökme.
+        }
 
-        return JsonSerializer.Deserialize<List<string>>(uriProperty.GetRawText()) ?? new List<string>();
     } 
 }
