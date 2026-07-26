@@ -36,8 +36,9 @@ public class OpenAiService
 
         var requestBody = new
         {
-            model = "gpt-4o-mini", // Çok hızlı, akıllı ve maliyeti en düşük yeni model
-            response_format = new { type = "json_object" }, // OpenAI'a özel: Kesinlikle JSON formatında dönmesini zorlar
+            model = "gpt-4o-mini",
+            temperature = 0.75,
+            response_format = new { type = "json_object" }, // kesinlikle JSON formatında dönmesini zorlar
             messages = new[]
             {
                 new { role = "system", content = systemPrompt },

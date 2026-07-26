@@ -22,10 +22,14 @@ public class SpotifyService
         var authResponse = await new OAuthClient(config).RequestToken(request);
         var spotify = new SpotifyClient(config.WithToken(authResponse.AccessToken));
 
+        Random rnd = new Random();
+        int rastgeleOfset = rnd.Next(0, 5) * 10;
+
         // 2. yapay zekadan gelen arama terimiyle arama yapıyorum
         var searchRequest = new SearchRequest(SearchRequest.Types.Track, aiParams.SearchQuery);
         searchRequest.Limit = 10;
         searchRequest.Market = "TR";
+        searchRequest.Offset = rastgeleOfset;
 
         var searchResponse = await spotify.Search.Item(searchRequest);
         var trackList = new List<object>();
